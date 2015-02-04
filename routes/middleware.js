@@ -28,11 +28,70 @@ exports.initLocals = function(req, res, next) {
 	];
 	
 	locals.user = req.user;
-	
-	next();
-	
-};
 
+	// console.log("req.user = " + req.user);
+	// if(req.path == "/keystone/users" || req.path == "/keystone/users/"){
+	// 	if(req.user.isSupperAdmin){
+	// 		next();
+	// 	}else{
+	// 		var err = new Error('need supper user');
+	// 		next(err);
+	// 	}
+	// }else{
+	// 	next();
+	// }
+
+
+	var indexOfUsersURL = req.path.indexOf("/keystone/users");
+	//solution for :  blocking common users accessing all user management pages including list and item pages.
+	// if(indexOfUsersURL == 0){
+	// 	if(req.user.isSupperAdmin){
+	// 		next();
+	// 	}else{
+	// 		var err = new Error('A supper admin account is needed!');
+	// 		next(err);
+	// 	}
+	// }else{
+	// 	next();
+	// }
+
+	//solution for : non super user can only change her/his account.
+	if(indexOfUsersURL == 0 && req.path.length > "/keystone/users/".length){
+		if(req.user.isSupperAdmin){ //super user  
+			next();
+		}else if(req.path == "/keystone/users/" + req.user._id){// for current user
+			next();
+		}else{
+			var err = new Error('You can only manage your account. To manage other accounts you need a supper admin account.');
+			next(err);
+		}
+	}else{
+		next();
+	}
+};
+/**
+    Inits the error handler functions into `res`
+*/
+exports.initErrorHandlers = function(req, res, next) {
+    
+    res.err = function(err, title, message) {
+        res.status(500).render('errors/500', {
+            err: err,
+            errorTitle: title,
+            errorMsg: message
+        });
+    }
+    
+    res.notfound = function(title, message) {
+        res.status(404).render('errors/404', {
+            errorTitle: title,
+            errorMsg: message
+        });
+    }
+    
+    next();
+    
+};
 
 /**
 	Fetches and clears the flashMessages before a view is rendered

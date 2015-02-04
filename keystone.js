@@ -28,6 +28,18 @@ keystone.init({
 
 });
 
+
+// Handle other errors
+keystone.set('500', function(err, req, res, next) {
+    var title, message;
+    if (err instanceof Error) {
+        message = err.message;
+        err = err.stack;
+    }
+    res.err(err, title, message);
+});
+
+
 // Load your project's Models
 
 keystone.import('models');
