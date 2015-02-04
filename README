@@ -7,3 +7,131 @@ Instruction:
 http://baiduhix.blogspot.co.uk/2015/02/keystone-more-deeper-supperadmin.html
 
 
+
+
+
+
+
+
+
+
+Add a middleware to "keystone/users" not too early not too late:
+
+In mount.js:
+
+// Pre-route middleware
+ this._pre.routes.forEach(function(fn) {
+  console.log("_pre.routes foreach---------------" + fn);
+  try {
+   app.use(fn);
+  }
+  catch(e) {
+   if (keystone.get('logger')) {
+    console.log('Invalid pre-route middleware provided');
+   }
+   throw e;
+  }
+ });
+
+_pre.routes just has one function which is the first function of :your project/routes/middleware.js.
+
+BTW, I don't know how this function links to _pre.routes.
+
+So, what I changed were:
+
+exports.initLocals = function(req, res, next) {
+ var locals = res.locals;
+ locals.navLinks = [
+  { label: 'Home',  key: 'home',  href: '/' }
+ ];
+ locals.user = req.user;
+ if(req.path == "/keystone/users"){
+  if(req.user.isSupperUser){
+   next();
+  }else{
+   var err = new Error('need supper user');
+   next(err);
+  }
+ }else{
+  next();
+ }
+};
+
+User management page will only accessable for superuser. (a better code implement is introduced at end of this post)
+
+I also need change models/User.js:
+
+User.add({
+ name: { type: Types.Name, required: true, index: true },
+ email: { type: Types.Email, initial: true, required: true, index: true },
+ password: { type: Types.Password, initial: true, required: true }
+}, 'Permissions', {
+ isAdmin: { type: Boolean, label: 'Can access Keystone', index: true },
+ isSupperUser: { type: Boolean, label: 'Is Supper User', index: true }
+});
+
+After that you can't access user management page anymore, because you haven't set any user as superuser.
+
+You can change a user to superuser in database manually, or add a new user by adding a new file: updates/0.0.2-admins.js:
+
+exports.create = {
+ User: [
+  { 'name.first': 'Adminxx', 'name.last': 'User', email: 'userxx@keystonejs.com', password: 'admin', isAdmin: true,isSupperUser:true }
+ ]
+};
+
+
+
+
+A better initLocals implementation:
+
+
+exports.initLocals = function(req, res, next) {
+ 
+ var locals = res.locals;
+ 
+ locals.navLinks = [
+  { label: 'Home',  key: 'home',  href: '/' }
+ ];
+ 
+ locals.user = req.user;
+
+  var indexOfUsersURL = req.path.indexOf("/keystone/users");
+ //solution for :  blocking common users accessing all user management pages including list and item pages.
+ // if(indexOfUsersURL == 0){
+ //  if(req.user.isSupperUser){
+ //   next();
+ //  }else{
+ //   var err = new Error('need supper user');
+ //   next(err);
+ //  }
+ // }else{
+ //  next();
+ // }
+
+  //solution for : non super user can only change her/his account.
+ if(indexOfUsersURL == 0 && req.path.length > "/keystone/users/".length){
+  if(req.user.isSupperUser){ //super user  
+   next();
+  }else if(req.path == "/keystone/users/" + req.user._id){// for current user
+   next();
+  }else{
+   var err = new Error('need supper user');
+   next(err);
+  }
+ }else{
+  next();
+ }
+};
+
+
+
+500 page:
+
+If user accessed a limited page, the system will redirect to 500 page.
+
+Keystonejs offers a default 500 page, without any configurations.
+
+If you want to customize the page you should follow： http://keystonejs.com/docs/getting-started/#routesviews-settingup
+
+
