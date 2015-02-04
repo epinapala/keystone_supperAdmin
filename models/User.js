@@ -14,7 +14,8 @@ User.add({
 	password: { type: Types.Password, initial: true, required: true }
 }, 'Permissions', {
 	isAdmin: { type: Boolean, label: 'Can access Keystone', index: true },
-	isSupperAdmin: { type: Boolean, label: 'Is Supper Admin', index: true }
+	isSupperAdmin: { type: Boolean, label: 'Is Supper Admin', index: true },
+	roles:{ type: Types.TextArray, label: 'Roles (do not use empty string please!)' }
 });
 
 // Provide access to Keystone

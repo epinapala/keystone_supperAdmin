@@ -32,30 +32,70 @@ exports.initLocals = function(req, res, next) {
 };
 
 
+function intersect(a, b) {
+    var d = {};
+    var results = [];
+    for (var i = 0; i < b.length; i++) {
+        d[b[i]] = true;
+    }
+    for (var j = 0; j < a.length; j++) {
+        if (d[a[j]]) 
+            results.push(a[j]);
+    }
+    if(results.length>0){
+    	return true;
+    }else{
+    	return false;
+    }
+}
+
 exports.initMyAuthorization = function(req, res, next) {
 	var useMyAuthorization = true;
 	if(useMyAuthorization){
-		var managePathOrItem = true; // true-- un authorized user can not see the list, false un authorized user can not access item page
+		var managePathOrItem = false; // true-- un authorized user can not see the list, false un authorized user can not access item page
 		var rules = [
-			{path:"",roles:['admin','','']},
-			{path:"",roles:['','','']}
+			{path:"XxObj",roles:['aa']},
+			{path:"testobjpath",roles:['cc','xx','zz']}
 		];
 
-		if(managePathOrItem){
-			var indexOfUsersURL = req.path.indexOf("/keystone/users");
-			solution for :  blocking common users accessing all user management pages including list and item pages.
-			if(indexOfUsersURL == 0){
-				if(req.user.isSupperAdmin){
-					next();
-				}else{
-					var err = new Error('A supper admin account is needed!');
-					next(err);
+		var result_can_next = true;
+
+		for(var i = 0; i<rules.length;i++){
+			if(managePathOrItem){
+				var indexOfListURL = req.path.indexOf("/keystone/" + rules[i].path);
+				console.log("------" + indexOfListURL);
+				if(indexOfListURL == 0){
+					console.log("rules[i].roles------" + rules[i].roles);
+					console.log("req.user.roles------" + req.user.roles);
+					if(intersect(rules[i].roles,req.user.roles)){
+						console.log("------intersected");
+						// next();
+						break;
+					}else{
+						result_can_next = false;
+						var err = new Error('Your acount cannot access this data!');
+						next(err);
+						break;
+					}
 				}
 			}else{
-				next();
+				var indexOfListURL = req.path.indexOf("/keystone/" + rules[i].path);
+				var itemURL = "/keystone/" + rules[i].path + "/";
+				if(indexOfListURL == 0 && req.path.length > itemURL.length){
+					if(intersect(rules[i].roles,req.user.roles)){
+						// next();
+						break;
+					}else{
+						result_can_next = false;
+						var err = new Error('Your acount cannot access this data!');
+						next(err);
+						break;
+					}
+				}
 			}
-		}else{
-
+		}
+		if(result_can_next){
+			next();
 		}
 	}
 };
