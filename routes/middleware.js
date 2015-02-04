@@ -28,6 +28,40 @@ exports.initLocals = function(req, res, next) {
 	];
 	
 	locals.user = req.user;
+	next();
+};
+
+
+exports.initMyAuthorization = function(req, res, next) {
+	var useMyAuthorization = true;
+	if(useMyAuthorization){
+		var managePathOrItem = true; // true-- un authorized user can not see the list, false un authorized user can not access item page
+		var rules = [
+			{path:"",roles:['admin','','']},
+			{path:"",roles:['','','']}
+		];
+
+		if(managePathOrItem){
+			var indexOfUsersURL = req.path.indexOf("/keystone/users");
+			solution for :  blocking common users accessing all user management pages including list and item pages.
+			if(indexOfUsersURL == 0){
+				if(req.user.isSupperAdmin){
+					next();
+				}else{
+					var err = new Error('A supper admin account is needed!');
+					next(err);
+				}
+			}else{
+				next();
+			}
+		}else{
+
+		}
+	}
+};
+
+
+exports.initSupperAdminChecking = function(req, res, next) {
 
 	// console.log("req.user = " + req.user);
 	// if(req.path == "/keystone/users" || req.path == "/keystone/users/"){
