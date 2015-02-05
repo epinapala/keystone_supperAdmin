@@ -132,7 +132,8 @@ exports.initMyAuthorization = function(req, res, next) {
 	}
 };
 
-
+// to user this you should make sure you didn't change user table's path.
+//if you did, please use initMyAuthorization to manage your user table.
 exports.initSupperAdminChecking = function(req, res, next) {
 
 	// console.log("req.user = " + req.user);
@@ -146,33 +147,66 @@ exports.initSupperAdminChecking = function(req, res, next) {
 	// }else{
 	// 	next();
 	// }
-
-
+	var managePathOrItem = false; // true-- un authorized user can not see the list, false un authorized user can not access item page
 	var indexOfUsersURL = req.path.indexOf("/keystone/users");
-	//solution for :  blocking common users accessing all user management pages including list and item pages.
-	// if(indexOfUsersURL == 0){
-	// 	if(req.user.isSupperAdmin){
-	// 		next();
-	// 	}else{
-	// 		var err = new Error('A supper admin account is needed!');
-	// 		next(err);
-	// 	}
-	// }else{
-	// 	next();
-	// }
-
-	//solution for : non super user can only change her/his account.
-	if(indexOfUsersURL == 0 && req.path.length > "/keystone/users/".length){
-		if(req.user.isSupperAdmin){ //super user  
-			next();
-		}else if(req.path == "/keystone/users/" + req.user._id){// for current user
-			next();
+	if(managePathOrItem){
+		//solution for :  blocking common users accessing all user management pages including list and item pages.
+		if(indexOfUsersURL == 0){
+			if(req.user.isSupperAdmin){
+				next();
+			}else{
+				var err = new Error('A supper admin account is needed!');
+				next(err);
+			}
 		}else{
-			var err = new Error('You can only manage your account. To manage other accounts you need a supper admin account.');
-			next(err);
+			next();
 		}
 	}else{
-		next();
+
+
+				//fix bug of unauthorized use can create object if the authorisation control is on "item"
+				//block POST http://localhost:3000/keystone/testobjpath/  -- for "create" operation
+				//1.if you want to do create operation,  you must POST a request a url like: /keystone/xxobj/
+				//2. I will check, if you don't have right to do operations with this  xxobj,
+				//3. throw error.
+				//Currently keystone do creating by posting to list url
+				// but do deleting by getting keystone/api/xxobj/delete.
+				// They didn't manage all of these RESTful api well, so my code is also ugly here:
+				if(req.path == "/keystone/users" || req.path == "/keystone/users/"){
+					if(!req.user.isSupperAdmin){
+						if(req.method.toLowerCase() !=  "get"){
+							var err = new Error('Your acount cannot do this Operation! A supper Admin user is needed!');
+							next(err);
+							return;
+						}
+					}
+				}
+
+				//http://localhost:3000/keystone/api/testobjpath/delete?id=54d33fad95e28a5c039335b3&_csrf=xf4aFWa51o%2FycPG32O39ksMniGLeGX90Gmbl8%3D
+				//fix bug of unauthorized use can delete object if the authorisation control is on "item"
+				var indexOfDeleteItemURL = req.path.indexOf("/keystone/api/users/delete");
+				if(indexOfDeleteItemURL == 0 ){
+					if(!req.user.isSupperAdmin){
+						var err = new Error('Your acount cannot do delete Operation! A supper Admin user is needed!');
+						next(err);
+						return;
+					}
+				}
+
+
+		//solution for : non super user can only change her/his account.
+		if(indexOfUsersURL == 0 && req.path.length > "/keystone/users/".length){
+			if(req.user.isSupperAdmin){ //super user  
+				next();
+			}else if(req.path == "/keystone/users/" + req.user._id){// for current user
+				next();
+			}else{
+				var err = new Error('You can only manage your account. To manage other accounts you need a supper admin account.');
+				next(err);
+			}
+		}else{
+			next();
+		}
 	}
 };
 /**
