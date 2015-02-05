@@ -63,7 +63,8 @@ exports.initMyAuthorization = function(req, res, next) {
 		for(var i = 0; i<rules.length;i++){
 			if(managePathOrItem){
 				var indexOfListURL = req.path.indexOf("/keystone/" + rules[i].path);
-				console.log("------" + indexOfListURL);
+				console.log("indexOfListURL------" + indexOfListURL);
+				console.log("req------" + req);
 				if(indexOfListURL == 0){
 					console.log("rules[i].roles------" + rules[i].roles);
 					console.log("req.user.roles------" + req.user.roles);
@@ -88,6 +89,37 @@ exports.initMyAuthorization = function(req, res, next) {
 					}else{
 						result_can_next = false;
 						var err = new Error('Your acount cannot access this data!');
+						next(err);
+						break;
+					}
+				}
+
+				//fix bug of unauthorized use can create object if the authorisation control is on "item"
+				//block POST http://localhost:3000/keystone/testobjpath/  -- for "create" operation
+				//1.if you want to do create operation,  you must POST a request a url like: /keystone/xxobj/
+				//2. I will check, if you don't have right to do operations with this  xxobj,
+				//3. throw error.
+				//Currently keystone do creating by posting to list url
+				// but do deleting by getting keystone/api/xxobj/delete.
+				// They didn't manage all of these RESTful api well, so my code is also ugly here:
+				if(req.path == ("/keystone/" + rules[i].path) || req.path == ("/keystone/" + rules[i].path + "/")){
+					if(!intersect(rules[i].roles,req.user.roles)){
+						if(req.method.toLowerCase() !=  "get"){
+							result_can_next = false;
+							var err = new Error('Your acount cannot do this Operation!');
+							next(err);
+							break;
+						}
+					}
+				}
+
+				//http://localhost:3000/keystone/api/testobjpath/delete?id=54d33fad95e28a5c039335b3&_csrf=xf4aFWa51o%2FycPG32O39ksMniGLeGX90Gmbl8%3D
+				//fix bug of unauthorized use can delete object if the authorisation control is on "item"
+				var indexOfDeleteItemURL = req.path.indexOf("/keystone/api/" + rules[i].path + "/delete");
+				if(indexOfDeleteItemURL == 0 ){
+					if(!intersect(rules[i].roles,req.user.roles)){
+						result_can_next = false;
+						var err = new Error('Your acount cannot do delete Operation!');
 						next(err);
 						break;
 					}
