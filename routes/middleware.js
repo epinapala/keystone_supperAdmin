@@ -52,7 +52,7 @@ function intersect(a, b) {
 exports.initMyAuthorization = function(req, res, next) {
 	var useMyAuthorization = true;
 	if(useMyAuthorization){
-		var managePathOrItem = false; // true-- un authorized user can not see the list, false un authorized user can not access item page
+		var managePathOrItem = true; // true-- un authorized user can not see the list, false un authorized user can not access item page
 		var rules = [
 			{path:"XxObj",roles:['aa']},
 			{path:"testobjpath",roles:['cc','xx','zz']}
@@ -63,8 +63,6 @@ exports.initMyAuthorization = function(req, res, next) {
 		for(var i = 0; i<rules.length;i++){
 			if(managePathOrItem){
 				var indexOfListURL = req.path.indexOf("/keystone/" + rules[i].path);
-				console.log("indexOfListURL------" + indexOfListURL);
-				console.log("req------" + req);
 				if(indexOfListURL == 0){
 					console.log("rules[i].roles------" + rules[i].roles);
 					console.log("req.user.roles------" + req.user.roles);
@@ -129,6 +127,8 @@ exports.initMyAuthorization = function(req, res, next) {
 		if(result_can_next){
 			next();
 		}
+	}else{
+		next();
 	}
 };
 
