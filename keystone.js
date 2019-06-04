@@ -28,6 +28,18 @@ keystone.init({
 
 });
 
+
+// Handle other errors
+keystone.set('500', function(err, req, res, next) {
+    var title, message;
+    if (err instanceof Error) {
+        message = err.message;
+        err = err.stack;
+    }
+    res.err(err, title, message);
+});
+
+
 // Load your project's Models
 
 keystone.import('models');
@@ -53,7 +65,9 @@ keystone.set('routes', require('./routes'));
 // Configure the navigation bar in Keystone's Admin UI
 
 keystone.set('nav', {
-	'users': 'users'
+	'users': 'users',
+	'XxObj':'XxObj',
+	'TestObject': 'testobjpath'
 });
 
 // Start Keystone to connect to your database and initialise the web server
